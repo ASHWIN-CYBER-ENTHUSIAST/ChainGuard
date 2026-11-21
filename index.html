@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#7a0f2e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>ChainGuard Pro – Anti Jerk Band</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#0d0b1f;--card:#1a1636;--ink:#f3f1ff;--mute:#9a95c4;--red:#d6173f;--cyan:#22e0ff;--ok:#2ee59d}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+body{display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(90deg,var(--red),#7a0f2e)}
+header h1{margin:0;font-size:17px;letter-spacing:1px}header small{display:block;font-size:10px;opacity:.85}
+#pill{padding:4px 11px;border-radius:99px;background:#0006;font-size:12px;font-weight:600}
+#pill.on{background:var(--ok);color:#06251a}
+#views{flex:1;position:relative;overflow:hidden}
+.v{position:absolute;inset:0;display:none;overflow:auto}.v.on{display:block}
+.pad{padding:14px;display:none}.pad.on{display:grid;gap:14px;align-content:start}
+#map{position:absolute;inset:0}
+#fab{position:absolute;right:10px;top:10px;z-index:1000;display:grid;gap:8px}
+#fab button{width:46px;height:46px;border-radius:50%;font-size:20px;padding:0;background:#1a1636ee;border:1px solid var(--cyan)}
+#sos{position:absolute;left:12px;bottom:14px;z-index:1000;width:84px;height:84px;border-radius:50%;background:var(--red);font-size:20px;box-shadow:0 0 0 6px #d6173f55,0 0 24px #d6173f}
+#near{position:absolute;left:108px;right:10px;bottom:14px;z-index:1000;max-height:34%;overflow:auto;background:#1a1636f2;border:1px solid var(--cyan);border-radius:12px;padding:8px 10px;display:none;font-size:13px}
+#near a{display:block;color:var(--cyan);padding:4px 0;text-decoration:none}#near b{margin-right:8px}
+.card{background:var(--card);border-radius:14px;padding:14px;border:1px solid #2d2860}
+.card h2{margin:0 0 10px;font-size:13px;color:var(--cyan);text-transform:uppercase;letter-spacing:1px}
+button{font:inherit;color:var(--ink);background:#2a2560;border:0;border-radius:10px;padding:11px 14px;cursor:pointer;font-weight:600}
+button.pri{background:var(--cyan);color:#041a20}button:active{transform:scale(.97)}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin-top:12px}
+.stats b{display:block;font-size:18px}.stats span{font-size:10px;color:var(--mute)}
+canvas{width:100%;height:100px;background:#100e28;border-radius:10px}
+input[type=text],input[type=tel]{width:100%;padding:10px;border-radius:8px;border:1px solid #3a3480;background:#100e28;color:var(--ink);font:inherit}
+input[type=range]{width:100%}
+label{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0;font-size:14px}
+.c{display:grid;grid-template-columns:1fr 1.3fr;gap:8px;margin-bottom:8px}
+#log{max-height:150px;overflow:auto;font:12px/1.6 ui-monospace,Menlo,monospace;color:var(--mute)}#log b{color:var(--cyan)}
+.h{padding:10px 0;border-bottom:1px solid #2d2860;font-size:13px}.h a{color:var(--cyan);margin-right:12px}
+nav{display:flex;background:#120f2b;border-top:1px solid #2d2860;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border-radius:0;font-size:11px;color:var(--mute);padding:9px 2px}
+nav button.on{color:var(--cyan)}nav i{display:block;font-style:normal;font-size:19px}
+#ov{position:fixed;inset:0;z-index:5000;background:#b0102ee8;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px;animation:fl 1s infinite}
+@keyframes fl{50%{background:#5a0617ee}}
+#ov h2{font-size:28px;margin:0}#cd{font-size:84px;font-weight:800;line-height:1}
+#ov button{font-size:19px;padding:15px 28px;background:#fff;color:#7a0f2e;min-width:230px}
+a.sm{display:block;text-align:center;text-decoration:none;color:var(--ink);background:#2a2560;padding:11px;border-radius:10px;margin-top:8px;font-weight:600}a.sm.all{background:var(--red)}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:10px;z-index:6000;display:none;max-width:90%;font-weight:600}
+.note{font-size:12px;color:var(--mute);margin:8px 0 0}code{color:var(--cyan)}
+</style>
+</head>
+<body>
+<header><div><h1>CHAINGUARD PRO</h1><small>Anti Jerk Band · Team VOID X · SDG 5</small></div><span id="pill">Band: off</span></header>
+<div id="views">
+  <section class="v on" id="v-map">
+    <div id="map"></div>
+    <div id="fab"><button id="bPol" title="Police">🚓</button><button id="bHos" title="Hospitals">🏥</button><button id="bMe" title="My location">◎</button></div>
+    <button id="sos">SOS</button>
+    <div id="near"></div>
+  </section>
+
+  <section class="v pad" id="v-band">
+    <div class="card"><h2>Band connection</h2>
+      <div class="row"><button class="pri" id="bConn">Connect band</button><button id="bDisc">Disconnect</button></div>
+      <div class="stats"><div><b id="sBat">–</b><span>Battery</span></div><div><b id="sG">–</b><span>Now (G)</span></div><div><b id="sPk">–</b><span>Peak (G)</span></div><div><b id="sGps">–</b><span>Band GPS</span></div></div>
+      <div class="row" style="margin-top:12px"><button id="bTest">Test buzzer</button><button id="bOff">Silence</button><button id="bDemo">Demo</button></div>
+    </div>
+    <div class="card"><h2>Live motion (G)</h2><canvas id="gr" width="600" height="200"></canvas>
+      <p class="note">Red line = jerk threshold. Uses band data when streaming; otherwise the phone’s own sensor.</p></div>
+    <div class="card"><h2>Band protocol</h2>
+      <p class="note" style="margin:0">Nordic UART over BLE. Band → app (one per line): <code>ACC,x,y,z</code> <code>JERK,3.8</code> <code>SOS</code> <code>GPS,13.08,80.27</code> <code>BAT,87</code>. App → band: <code>ALARM_ON</code> <code>ALARM_OFF</code> <code>TEST</code>. Name the device “AntiJerk”.</p></div>
+    <div class="card"><h2>Event log</h2><div id="log"></div></div>
+  </section>
+
+  <section class="v pad" id="v-con">
+    <div class="card"><h2>Emergency contacts</h2><div id="contacts"></div>
+      <div class="c"><input type="text" value="Police" disabled><input type="text" value="100" disabled></div>
+      <p class="note">Saved automatically on this device.</p></div>
+    <div class="card"><h2>Share</h2><button class="pri" id="bShare" style="width:100%">Share my live location</button></div>
+  </section>
+
+  <section class="v pad" id="v-his">
+    <div class="card"><h2>Incident history</h2><div id="hist"></div>
+      <div class="row" style="margin-top:10px"><button id="bCsv">Export CSV</button><button id="bClr">Clear</button></div></div>
+  </section>
+
+  <section class="v pad" id="v-set">
+    <div class="card"><h2>Settings</h2>
+      <label>Your name<input type="text" data-k="name" placeholder="Used in SOS message" style="width:60%"></label>
+      <label>Jerk threshold <b id="lG"></b></label><input type="range" data-k="g" min="1.5" max="6" step=".5">
+      <label>Cancel window <b id="lD"></b></label><input type="range" data-k="delay" min="5" max="30" step="1">
+      <label>Detect jerks with phone sensor<input type="checkbox" data-k="phone"></label>
+      <label>Record video/audio evidence<input type="checkbox" data-k="rec"></label>
+      <label>Voice announcements<input type="checkbox" data-k="voice"></label>
+      <p class="note">Phone detection reacts to hard shakes, so keep it off unless testing.</p></div>
+  </section>
+</div>
+<nav>
+  <button data-v="map" class="on"><i>🗺</i>Map</button><button data-v="band"><i>⌚</i>Band</button><button data-v="con"><i>👥</i>Contacts</button><button data-v="his"><i>📋</i>History</button><button data-v="set"><i>⚙</i>Settings</button>
+</nav>
+
+<div id="ov"><h2 id="ovT">⚠ JERK DETECTED</h2><div id="cd">10</div><p style="margin:0">Alarm is sounding. Alert goes out when the timer ends.</p>
+  <button id="safe">I’m safe – cancel</button><button id="now" style="background:#2a0710;color:#fff">Send alert now</button></div>
+<div id="sms" style="display:none;position:fixed;inset:auto 0 0 0;z-index:5500;background:var(--card);border-top:2px solid var(--red);padding:14px;max-height:75%;overflow:auto"></div>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const NUS='6e400001-b5a0-f393-89c9-0a002d6bb0b0',RXC='6e400002-b5a0-f393-89c9-0a002d6bb0b0',TXC='6e400003-b5a0-f393-89c9-0a002d6bb0b0';
+const store={get(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch(e){return f}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const S=Object.assign({name:'',g:3,delay:10,phone:false,rec:true,voice:true,contacts:[{},{},{}],hist:[]},store.get('cgp',{}));
+const save=()=>store.set('cgp',S);
+let tT;function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(tT);tT=setTimeout(()=>t.style.display='none',3500)}
+function log(m){const d=document.createElement('div');d.innerHTML='<b>'+new Date().toLocaleTimeString()+'</b> ';d.append(m);$('log').prepend(d)}
+const speak=t=>{if(S.voice&&window.speechSynthesis)try{speechSynthesis.speak(new SpeechSynthesisUtterance(t))}catch(e){}};
+
+// ---------- tabs ----------
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button,.v').forEach(e=>e.classList.remove('on'));
+  b.classList.add('on');$('v-'+b.dataset.v).classList.add('on');
+  if(b.dataset.v==='map')setTimeout(()=>map.invalidateSize(),50);
+  if(b.dataset.v==='his')renderHist();
+});
+
+// ---------- map ----------
+const map=L.map('map').setView([13.0827,80.2707],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+const dot=(c,s=18)=>L.divIcon({className:'',html:`<div style="width:${s}px;height:${s}px;border-radius:50%;background:${c};border:3px solid #fff;box-shadow:0 0 10px ${c}"></div>`,iconSize:[s,s],iconAnchor:[s/2,s/2]});
+let me,meAcc,bandM,myPos=null,bandPos=null,bandT=0,first=true;
+const trail=L.polyline([],{color:'#22e0ff',weight:4}).addTo(map),nl=L.layerGroup().addTo(map),hl=L.layerGroup().addTo(map);
+function locate(){
+  if(!navigator.geolocation)return log('Phone GPS unavailable');
+  navigator.geolocation.watchPosition(p=>{
+    myPos=[p.coords.latitude,p.coords.longitude];
+    if(!me){me=L.marker(myPos,{icon:dot('#2e8bff')}).addTo(map).bindPopup('You (phone)');meAcc=L.circle(myPos,{radius:p.coords.accuracy,color:'#2e8bff',weight:1}).addTo(map)}
+    else{me.setLatLng(myPos);meAcc.setLatLng(myPos).setRadius(p.coords.accuracy)}
+    if(first){map.setView(myPos,16);first=false}
+  },e=>log('Phone GPS: '+e.message),{enableHighAccuracy:true,maximumAge:3000});
+}
+function setBand(a,b){
+  bandPos=[a,b];bandT=Date.now();$('sGps').textContent='Fix';
+  if(!bandM)bandM=L.marker(bandPos,{icon:dot('#d6173f',22)}).addTo(map).bindPopup('Anti Jerk Band');else bandM.setLatLng(bandPos);
+  trail.addLatLng(bandPos);if(first){map.setView(bandPos,16);first=false}
+}
+const bestPos=()=>(bandPos&&Date.now()-bandT<30000)?bandPos:myPos;
+$('bMe').onclick=()=>{const p=bestPos();p?map.setView(p,17):toast('Waiting for GPS…')};
+async function nearby(type){
+  const p=bestPos(),n=$('near');if(!p)return toast('Waiting for GPS fix…');
+  n.style.display='block';n.textContent='Searching…';
+  try{
+    const q=`[out:json][timeout:15];node(around:3000,${p[0]},${p[1]})[amenity=${type}];out 20;`;
+    const j=await (await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q)})).json();
+    const items=j.elements.map(e=>({n:(e.tags&&e.tags.name)||type,la:e.lat,lo:e.lon,d:map.distance(p,[e.lat,e.lon])})).sort((a,b)=>a.d-b.d).slice(0,8);
+    nl.clearLayers();n.innerHTML='<b>Nearest '+type+'</b><a href="#" id="nx" style="display:inline">✕</a>';
+    $('nx').onclick=e=>{e.preventDefault();n.style.display='none'};
+    items.forEach(i=>{L.marker([i.la,i.lo],{icon:dot(type==='police'?'#2e8bff':'#2ee59d',16)}).addTo(nl).bindPopup(i.n);
+      const a=document.createElement('a');a.target='_blank';a.href=`https://www.google.com/maps/dir/?api=1&destination=${i.la},${i.lo}`;a.textContent=`${i.n} · ${(i.d/1000).toFixed(1)} km`;n.append(a)});
+    if(!items.length)n.append('None within 3 km');
+  }catch(e){n.textContent='Could not load (offline?)'}
+}
+$('bPol').onclick=()=>nearby('police');$('bHos').onclick=()=>nearby('hospital');
+
+// ---------- live motion graph ----------
+const gs=[],cv=$('gr'),cx=cv.getContext('2d');let peak=0,lastBand=0,dirty=false;
+function pushG(m,src){
+  if(src==='phone'&&Date.now()-lastBand<2500)return;
+  if(src==='band')lastBand=Date.now();
+  gs.push(m);if(gs.length>150)gs.shift();if(m>peak){peak=m;$('sPk').textContent=m.toFixed(1)}
+  $('sG').textContent=m.toFixed(1);if(!dirty){dirty=true;requestAnimationFrame(draw)}
+}
+function draw(){
+  dirty=false;const w=cv.width,h=cv.height,mx=8;cx.clearRect(0,0,w,h);
+  cx.strokeStyle='#d6173f';cx.setLineDash([8,6]);cx.beginPath();const ty=h-S.g/mx*h;cx.moveTo(0,ty);cx.lineTo(w,ty);cx.stroke();cx.setLineDash([]);
+  cx.strokeStyle='#22e0ff';cx.lineWidth=3;cx.beginPath();
+  gs.forEach((v,i)=>{const x=i/149*w,y=h-Math.min(v,mx)/mx*h;i?cx.lineTo(x,y):cx.moveTo(x,y)});cx.stroke();
+}
+addEventListener('devicemotion',e=>{const a=e.accelerationIncludingGravity;if(!a||a.x==null)return;const m=Math.hypot(a.x,a.y,a.z)/9.81;pushG(m,'phone');if(S.phone&&m>=Math.max(S.g,4))alertStart('Phone jerk '+m.toFixed(1)+'G')});
+
+// ---------- Bluetooth ----------
+// Native Android BLE (Capacitor) when running as the installed app; Web Bluetooth fallback in a browser.
+let dev=null,rx=null,buf='',retries=0,demoT=null,wl=null,nId=null,nUp=false,nHold=false;
+const dec=new TextDecoder(),enc=new TextEncoder();
+const isNative=()=>!!(window.NativeBLE&&window.NativeBLE.available);
+const bandLive=()=>!!demoT||nUp||!!(dev&&dev.gatt&&dev.gatt.connected);
+function setConn(on,t){const p=$('pill');p.textContent='Band: '+(t||(on?'connected':'off'));p.classList.toggle('on',on)}
+async function keepAwake(){try{wl=await navigator.wakeLock.request('screen')}catch(e){}}
+async function connectBand(){
+  if(isNative())return connectNative();
+  if(!navigator.bluetooth)return toast('Web Bluetooth needs Chrome/Edge on Android or desktop (HTTPS).');
+  try{
+    dev=await navigator.bluetooth.requestDevice({filters:[{services:[NUS]},{namePrefix:'AntiJerk'},{namePrefix:'ChainGuard'}],optionalServices:[NUS]});
+    dev.addEventListener('gattserverdisconnected',onDrop);await openGatt();
+    if(window.Notification&&Notification.permission==='default')Notification.requestPermission();
+  }catch(e){if(e.name!=='NotFoundError'){toast('Bluetooth: '+e.message);log('BLE error: '+e.message)}}
+}
+async function openGatt(){
+  const s=await (await dev.gatt.connect()).getPrimaryService(NUS);
+  rx=await s.getCharacteristic(RXC);const tx=await s.getCharacteristic(TXC);
+  await tx.startNotifications();tx.addEventListener('characteristicvaluechanged',e=>feed(dec.decode(e.target.value)));
+  retries=0;setConn(true);keepAwake();log('Connected to '+(dev.name||'band'));toast('Band connected');
+}
+function onDrop(){
+  setConn(false);rx=null;log('Band disconnected');
+  if(dev&&retries<5){retries++;log('Reconnecting ('+retries+'/5)…');setTimeout(async()=>{try{await openGatt()}catch(e){onDrop()}},2000)}
+}
+// ----- native (Capacitor) path -----
+async function connectNative(){
+  try{
+    await NativeBLE.init();
+    const d=await NativeBLE.pick(NUS);
+    nId=d.deviceId;nHold=false;await openNative(d.name);
+  }catch(e){const m=(e&&e.message)||String(e);if(!/cancel/i.test(m)){toast('Bluetooth: '+m);log('BLE error: '+m)}}
+}
+async function openNative(name){
+  await NativeBLE.connect(nId,onNativeDrop);
+  await NativeBLE.listen(nId,NUS,TXC,feed);
+  nUp=true;retries=0;setConn(true);keepAwake();log('Connected to '+(name||'band'));toast('Band connected');
+}
+function onNativeDrop(){
+  nUp=false;setConn(false);log('Band disconnected');
+  if(nId&&!nHold&&retries<5){retries++;log('Reconnecting ('+retries+'/5)…');setTimeout(async()=>{try{await openNative()}catch(e){onNativeDrop()}},2000)}
+}
+async function disconnect(){
+  retries=9;nHold=true;
+  if(isNative()&&nId){try{await NativeBLE.disconnect(nId)}catch(e){}nUp=false}
+  else if(dev&&dev.gatt.connected)dev.gatt.disconnect();
+  stopDemo();setConn(false)
+}
+async function send(c){
+  if(demoT)return log('Demo → '+c);
+  if(isNative()){
+    if(!nUp)return toast('Band not connected');
+    try{await NativeBLE.write(nId,NUS,RXC,c);log('Sent '+c)}catch(e){toast('Write failed: '+((e&&e.message)||e))}
+    return;
+  }
+  if(!rx)return toast('Band not connected');
+  try{await rx.writeValueWithoutResponse(enc.encode(c+'\n'));log('Sent '+c)}catch(e){toast('Write failed: '+e.message)}
+}
+function feed(c){buf+=c;let i;while((i=buf.indexOf('\n'))>=0){parse(buf.slice(0,i).trim());buf=buf.slice(i+1)}}
+function parse(l){
+  if(!l)return;const p=l.split(',');
+  switch(p[0].toUpperCase()){
+    case'ACC':{const m=Math.hypot(+p[1],+p[2],+p[3]);if(isFinite(m)){pushG(m,'band');if(m>=S.g)alertStart('Band jerk '+m.toFixed(1)+'G')}break}
+    case'JERK':{const g=parseFloat(p[1])||0;pushG(g,'band');log('Band: jerk '+g.toFixed(1)+'G');if(g>=S.g)alertStart('Band jerk '+g.toFixed(1)+'G');break}
+    case'SOS':log('Band: SOS button');alertStart('Band SOS button');break;
+    case'GPS':{const a=parseFloat(p[1]),b=parseFloat(p[2]);if(isFinite(a)&&isFinite(b))setBand(a,b);break}
+    case'BAT':$('sBat').textContent=(parseInt(p[1])||0)+'%';break;
+    default:log('Band: '+l)
+  }
+}
+function startDemo(){
+  if(demoT)return stopDemo();
+  let la=13.0827,lo=80.2707,n=0;setConn(true,'demo');$('sBat').textContent='92%';log('Demo band started');keepAwake();
+  demoT=setInterval(()=>{n++;la+=.0002;lo+=.00015;feed(`GPS,${la},${lo}\n`);feed(`ACC,${(Math.random()-.5).toFixed(2)},${(Math.random()-.5).toFixed(2)},${(1+Math.random()*.3).toFixed(2)}\n`);if(n===14)feed('ACC,2.9,2.5,1.8\n')},500);
+}
+function stopDemo(){if(demoT){clearInterval(demoT);demoT=null;setConn(false);log('Demo stopped')}}
+
+// ---------- evidence ----------
+let rec=null,chunks=[],urls={},ev=null;
+async function startRec(){
+  if(!S.rec||!navigator.mediaDevices||!window.MediaRecorder)return;
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:true}),e=ev;
+    chunks=[];rec=new MediaRecorder(st);rec.ondataavailable=x=>chunks.push(x.data);
+    rec.onstop=()=>{st.getTracks().forEach(t=>t.stop());urls[e.t]=URL.createObjectURL(new Blob(chunks,{type:rec.mimeType||'video/webm'}));log('Evidence saved');renderHist()};
+    rec.start();setTimeout(stopRec,60000);log('Evidence recording started');
+  }catch(e){log('Recording unavailable: '+e.message)}
+}
+const stopRec=()=>{if(rec&&rec.state==='recording')rec.stop()};
+
+// ---------- alert flow ----------
+let alertOn=false,cdT=null,ac=null,sirT=null;
+function siren(on){
+  clearInterval(sirT);if(!on){if(ac){ac.close();ac=null}return}
+  try{ac=new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type='square';g.gain.value=.5;o.connect(g).connect(ac.destination);o.start();let up=true;
+    sirT=setInterval(()=>{o.frequency.setValueAtTime(up?1400:700,ac.currentTime);up=!up},350)}catch(e){}
+}
+function alertStart(why){
+  if(alertOn)return;alertOn=true;ev={t:Date.now(),why,pos:bestPos(),sent:false};S.hist.unshift(ev);save();
+  $('ovT').textContent='⚠ '+why.toUpperCase();$('ov').style.display='flex';siren(true);send('ALARM_ON');startRec();
+  speak('Alert. '+why+'. Sending S O S in '+S.delay+' seconds.');
+  if(navigator.vibrate)navigator.vibrate([500,200,500,200,500,200,500]);
+  try{if(window.Notification&&Notification.permission==='granted')new Notification('ChainGuard alert',{body:why})}catch(e){}
+  let t=S.delay;$('cd').textContent=t;clearInterval(cdT);
+  cdT=setInterval(()=>{t--;$('cd').textContent=t;if(t<=0)dispatch()},1000);
+}
+function cancelAlert(){
+  clearInterval(cdT);alertOn=false;$('ov').style.display='none';$('sms').style.display='none';siren(false);send('ALARM_OFF');stopRec();
+  if(ev){S.hist=S.hist.filter(h=>h!==ev);save()}log('Alert cancelled – user is safe');speak('Alert cancelled.');
+}
+const contacts=()=>S.contacts.filter(c=>c&&c.n).map(c=>({name:c.name||c.n,n:c.n.replace(/[^\d+]/g,'')})).concat({name:'Police',n:'100'});
+function msg(){
+  const p=bestPos(),loc=p?`https://www.google.com/maps?q=${p[0].toFixed(6)},${p[1].toFixed(6)}`:'location unavailable';
+  return `🚨 EMERGENCY – ${S.name||'I'} may be in danger (Anti Jerk Band alert). Live location: ${loc} Time: ${new Date().toLocaleString()}`;
+}
+function dispatch(){
+  clearInterval(cdT);$('ov').style.display='none';siren(false);
+  if(ev){ev.pos=bestPos();ev.sent=true;save()}
+  const m=encodeURIComponent(msg()),cs=contacts(),box=$('sms');box.innerHTML='<h2 style="margin:0 0 6px;color:var(--cyan);font-size:14px">SEND ALERT NOW</h2>';
+  const all=document.createElement('a');all.className='sm all';all.href='sms:'+cs.map(c=>c.n).join(',')+'?&body='+m;all.textContent='📨 Message all + Police 100';box.append(all);
+  cs.forEach(c=>{const a=document.createElement('a');a.className='sm';a.href='sms:'+c.n+'?&body='+m;a.textContent='SMS '+c.name+' ('+c.n+')';box.append(a)});
+  const w=document.createElement('a');w.className='sm';w.href='https://wa.me/?text='+m;w.target='_blank';w.textContent='WhatsApp';box.append(w);
+  const x=document.createElement('button');x.style.cssText='width:100%;margin-top:10px';x.textContent='Close alert';x.onclick=()=>{alertOn=false;box.style.display='none';send('ALARM_OFF');stopRec()};box.append(x);
+  box.style.display='block';log('Alert ready – '+cs.length+' recipients');speak('S O S ready to send.');
+  if(bandLive()){try{location.href=all.href}catch(e){}}else log('No band connected – SMS not auto-opened. Tap a button to send.');
+}
+$('sos').onclick=()=>alertStart('Manual SOS');$('safe').onclick=cancelAlert;$('now').onclick=dispatch;
+
+// ---------- history ----------
+function renderHist(){
+  const box=$('hist');box.innerHTML='';hl.clearLayers();
+  if(!S.hist.length)box.textContent='No incidents recorded.';
+  S.hist.forEach(h=>{
+    const d=document.createElement('div');d.className='h';d.append(new Date(h.t).toLocaleString()+' – '+h.why+(h.sent?' (alert sent)':'')+' ');
+    if(h.pos){const a=document.createElement('a');a.href='#';a.textContent='Show on map';a.onclick=e=>{e.preventDefault();document.querySelector('nav button[data-v=map]').click();map.setView(h.pos,17)};d.append(a);
+      L.marker(h.pos,{icon:dot('#ffb020',16)}).addTo(hl).bindPopup(new Date(h.t).toLocaleString()+'<br>'+h.why)}
+    if(urls[h.t]){const a=document.createElement('a');a.href=urls[h.t];a.download='evidence-'+h.t+'.webm';a.textContent='⬇ Evidence';d.append(a)}
+    box.append(d)});
+}
+$('bCsv').onclick=()=>{
+  const rows=['time,reason,lat,lon,sent'].concat(S.hist.map(h=>[new Date(h.t).toISOString(),'"'+h.why+'"',h.pos?h.pos[0]:'',h.pos?h.pos[1]:'',!!h.sent].join(',')));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));a.download='chainguard-incidents.csv';a.click();
+};
+$('bClr').onclick=()=>{if(confirm('Clear all incidents?')){S.hist=[];save();renderHist()}};
+
+// ---------- settings & contacts ----------
+function labels(){$('lG').textContent=S.g+' G';$('lD').textContent=S.delay+' s'}
+document.querySelectorAll('[data-k]').forEach(e=>{
+  const k=e.dataset.k;if(e.type==='checkbox')e.checked=S[k];else e.value=S[k];
+  e.oninput=()=>{S[k]=e.type==='checkbox'?e.checked:e.type==='range'?+e.value:e.value;save();labels();draw()};
+});
+for(let i=0;i<3;i++){
+  const r=document.createElement('div');r.className='c';r.innerHTML='<input type="text" placeholder="Name"><input type="tel" placeholder="+91 98765 43210">';
+  const c=S.contacts[i]||(S.contacts[i]={});r.children[0].value=c.name||'';r.children[1].value=c.n||'';
+  r.children[0].oninput=e=>{S.contacts[i].name=e.target.value;save()};r.children[1].oninput=e=>{S.contacts[i].n=e.target.value;save()};
+  $('contacts').append(r);
+}
+$('bShare').onclick=()=>{const t=msg();navigator.share?navigator.share({text:t}).catch(()=>{}):(navigator.clipboard&&navigator.clipboard.writeText(t),toast('Copied location message'))};
+
+// ---------- wiring ----------
+$('bConn').onclick=connectBand;$('bDisc').onclick=disconnect;$('bTest').onclick=()=>send('TEST');$('bOff').onclick=()=>send('ALARM_OFF');$('bDemo').onclick=startDemo;
+if('serviceWorker' in navigator&&!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+labels();locate();renderHist();log('ChainGuard Pro ready');
+</script>
+<script type="module" src="/src/ble-native.js"></script>
+</body>
+</html>
